@@ -47,6 +47,14 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        chess: {
+          "board-light": "hsl(var(--chess-board-light))",
+          "board-dark": "hsl(var(--chess-board-dark))",
+          "board-highlight": "hsl(var(--chess-board-highlight))",
+          "board-selected": "hsl(var(--chess-board-selected))",
+          "piece-light": "hsl(var(--chess-piece-light))",
+          "piece-dark": "hsl(var(--chess-piece-dark))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
