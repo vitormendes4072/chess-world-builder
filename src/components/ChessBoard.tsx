@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { BoardState, Position } from '@/types/chess';
 import { createInitialBoard, isValidMove } from '@/utils/chess';
 import { ChessSquare } from './ChessSquare';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export const ChessBoard = () => {
@@ -9,6 +10,21 @@ export const ChessBoard = () => {
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<'white' | 'black'>('white');
   const [possibleMoves, setPossibleMoves] = useState<Position[]>([]);
+  const [gameActive, setGameActive] = useState<boolean>(false);
+
+  const startGame = useCallback(() => {
+    setBoard(createInitialBoard());
+    setSelectedSquare(null);
+    setCurrentPlayer('white');
+    setPossibleMoves([]);
+    setGameActive(true);
+  }, []);
+
+  const resignGame = useCallback(() => {
+    setGameActive(false);
+    setSelectedSquare(null);
+    setPossibleMoves([]);
+  }, []);
 
   const calculatePossibleMoves = useCallback((row: number, col: number): Position[] => {
     const moves: Position[] = [];
@@ -25,6 +41,8 @@ export const ChessBoard = () => {
   }, [board]);
 
   const handleSquareClick = useCallback((row: number, col: number) => {
+    if (!gameActive) return; // Don't allow moves when game is not active
+    
     const piece = board[row][col];
     
     if (selectedSquare) {
@@ -56,7 +74,7 @@ export const ChessBoard = () => {
       setSelectedSquare({ row, col });
       setPossibleMoves(calculatePossibleMoves(row, col));
     }
-  }, [board, selectedSquare, currentPlayer, calculatePossibleMoves]);
+  }, [board, selectedSquare, currentPlayer, calculatePossibleMoves, gameActive]);
 
   const isSquareHighlighted = useCallback((row: number, col: number): boolean => {
     return possibleMoves.some(move => move.row === row && move.col === col);
@@ -69,15 +87,43 @@ export const ChessBoard = () => {
   return (
     <div className="flex flex-col items-center gap-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          Turno: {currentPlayer === 'white' ? 'Brancas' : 'Pretas'}
-        </h2>
+        {!gameActive ? (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-foreground">
+              Xadrez dos Amigos
+            </h2>
+            <p className="text-muted-foreground">
+              Clique em "Iniciar Partida" para começar a jogar
+            </p>
+            <Button 
+              onClick={startGame}
+              size="lg"
+              className="bg-primary hover:bg-primary/90"
+            >
+              Iniciar Partida
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              Turno: {currentPlayer === 'white' ? 'Brancas' : 'Pretas'}
+            </h2>
+            <Button 
+              onClick={resignGame}
+              variant="destructive"
+              size="sm"
+            >
+              Desistir da Partida
+            </Button>
+          </div>
+        )}
       </div>
       
       <div 
         className={cn(
           "grid grid-cols-8 gap-0 border-4 border-accent rounded-lg overflow-hidden",
-          "shadow-[var(--shadow-board)]"
+          "shadow-[var(--shadow-board)]",
+          !gameActive && "opacity-70"
         )}
         style={{ 
           background: "var(--gradient-board)",
@@ -101,9 +147,11 @@ export const ChessBoard = () => {
         )}
       </div>
       
-      <div className="text-center text-sm text-muted-foreground max-w-md">
-        <p>Clique em uma peça para selecioná-la, depois clique no destino para mover.</p>
-      </div>
+      {gameActive && (
+        <div className="text-center text-sm text-muted-foreground max-w-md">
+          <p>Clique em uma peça para selecioná-la, depois clique no destino para mover.</p>
+        </div>
+      )}
     </div>
   );
 };
