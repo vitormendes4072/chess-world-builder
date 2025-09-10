@@ -65,7 +65,7 @@ export const ChessBoard = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [gameActive, gameMode, currentPlayer, board, difficulty, isAIThinking]);
+  }, [gameActive, gameMode, currentPlayer, board, difficulty]); // Important: exclude isAIThinking to avoid clearing the timer immediately
 
   const calculatePossibleMoves = useCallback((row: number, col: number): Position[] => {
     const moves: Position[] = [];
