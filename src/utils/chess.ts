@@ -20,6 +20,30 @@ export const createInitialBoard = (): BoardState => {
   return board;
 };
 
+const isPathClear = (
+  board: BoardState,
+  fromRow: number,
+  fromCol: number,
+  toRow: number,
+  toCol: number
+): boolean => {
+  const rowDirection = toRow > fromRow ? 1 : toRow < fromRow ? -1 : 0;
+  const colDirection = toCol > fromCol ? 1 : toCol < fromCol ? -1 : 0;
+  
+  let currentRow = fromRow + rowDirection;
+  let currentCol = fromCol + colDirection;
+  
+  while (currentRow !== toRow || currentCol !== toCol) {
+    if (board[currentRow][currentCol] !== null) {
+      return false; // Path is blocked
+    }
+    currentRow += rowDirection;
+    currentCol += colDirection;
+  }
+  
+  return true;
+};
+
 export const isValidMove = (
   board: BoardState,
   fromRow: number,
@@ -38,7 +62,7 @@ export const isValidMove = (
   // Can't capture own piece
   if (targetPiece && targetPiece.color === piece.color) return false;
   
-  // Basic movement validation (simplified for now)
+  // Basic movement validation
   const rowDiff = Math.abs(toRow - fromRow);
   const colDiff = Math.abs(toCol - fromCol);
   
@@ -60,13 +84,22 @@ export const isValidMove = (
       return false;
       
     case 'rook':
-      return (rowDiff === 0 || colDiff === 0);
+      if (rowDiff === 0 || colDiff === 0) {
+        return isPathClear(board, fromRow, fromCol, toRow, toCol);
+      }
+      return false;
       
     case 'bishop':
-      return rowDiff === colDiff;
+      if (rowDiff === colDiff) {
+        return isPathClear(board, fromRow, fromCol, toRow, toCol);
+      }
+      return false;
       
     case 'queen':
-      return (rowDiff === 0 || colDiff === 0 || rowDiff === colDiff);
+      if (rowDiff === 0 || colDiff === 0 || rowDiff === colDiff) {
+        return isPathClear(board, fromRow, fromCol, toRow, toCol);
+      }
+      return false;
       
     case 'king':
       return rowDiff <= 1 && colDiff <= 1;
