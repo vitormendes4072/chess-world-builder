@@ -37,8 +37,8 @@ All colors MUST be HSL.
     --ring: 87 34% 58%;
 
     /* Chess specific colors */
-    --chess-board-light: 46 87% 88%;
-    --chess-board-dark: 87 34% 58%;
+    --chess-board-light: 0 0% 95%;
+    --chess-board-dark: 0 0% 15%;
     --chess-board-highlight: 58 100% 75%;
     --chess-board-selected: 195 100% 70%;
     --chess-piece-light: 0 0% 95%;
