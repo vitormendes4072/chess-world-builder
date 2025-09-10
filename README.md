@@ -1,4 +1,4 @@
-# Bem vindo a replica do Chess.com
+# Bem vindo ao Xadrez dos Amigos
 
 ## Informações do projeto
 
