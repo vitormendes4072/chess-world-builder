@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BoardState, Position } from '@/types/chess';
 import { createInitialBoard, isValidMove } from '@/utils/chess';
+import { getAIMove, Difficulty } from '@/utils/chessAI';
 import { ChessSquare } from './ChessSquare';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 export const ChessBoard = () => {
@@ -11,6 +13,9 @@ export const ChessBoard = () => {
   const [currentPlayer, setCurrentPlayer] = useState<'white' | 'black'>('white');
   const [possibleMoves, setPossibleMoves] = useState<Position[]>([]);
   const [gameActive, setGameActive] = useState<boolean>(false);
+  const [gameMode, setGameMode] = useState<'pvp' | 'ai'>('pvp');
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [isAIThinking, setIsAIThinking] = useState<boolean>(false);
 
   const startGame = useCallback(() => {
     setBoard(createInitialBoard());
@@ -18,13 +23,49 @@ export const ChessBoard = () => {
     setCurrentPlayer('white');
     setPossibleMoves([]);
     setGameActive(true);
+    setIsAIThinking(false);
   }, []);
 
   const resignGame = useCallback(() => {
     setGameActive(false);
     setSelectedSquare(null);
     setPossibleMoves([]);
+    setIsAIThinking(false);
   }, []);
+
+  // AI Move Effect
+  useEffect(() => {
+    if (gameActive && gameMode === 'ai' && currentPlayer === 'black' && !isAIThinking) {
+      setIsAIThinking(true);
+      
+      // Add delay to make AI move feel natural
+      const timer = setTimeout(() => {
+        const aiMove = getAIMove(board, difficulty);
+        
+        if (aiMove) {
+          const fromRow = Math.floor(aiMove.row / 8);
+          const fromCol = aiMove.row % 8;
+          const toRow = Math.floor(aiMove.col / 8);
+          const toCol = aiMove.col % 8;
+          
+          const newBoard = board.map(row => [...row]);
+          const movingPiece = newBoard[fromRow][fromCol];
+          
+          if (movingPiece) {
+            newBoard[toRow][toCol] = movingPiece;
+            newBoard[fromRow][fromCol] = null;
+            
+            setBoard(newBoard);
+            setCurrentPlayer('white');
+          }
+        }
+        
+        setIsAIThinking(false);
+      }, 1000); // 1 second delay for AI move
+      
+      return () => clearTimeout(timer);
+    }
+  }, [gameActive, gameMode, currentPlayer, board, difficulty, isAIThinking]);
 
   const calculatePossibleMoves = useCallback((row: number, col: number): Position[] => {
     const moves: Position[] = [];
@@ -41,7 +82,8 @@ export const ChessBoard = () => {
   }, [board]);
 
   const handleSquareClick = useCallback((row: number, col: number) => {
-    if (!gameActive) return; // Don't allow moves when game is not active
+    if (!gameActive || isAIThinking) return; // Don't allow moves when game is not active or AI is thinking
+    if (gameMode === 'ai' && currentPlayer === 'black') return; // Don't allow moves when it's AI turn
     
     const piece = board[row][col];
     
@@ -74,7 +116,7 @@ export const ChessBoard = () => {
       setSelectedSquare({ row, col });
       setPossibleMoves(calculatePossibleMoves(row, col));
     }
-  }, [board, selectedSquare, currentPlayer, calculatePossibleMoves, gameActive]);
+  }, [board, selectedSquare, currentPlayer, calculatePossibleMoves, gameActive, gameMode, isAIThinking]);
 
   const isSquareHighlighted = useCallback((row: number, col: number): boolean => {
     return possibleMoves.some(move => move.row === row && move.col === col);
@@ -92,13 +134,46 @@ export const ChessBoard = () => {
             <h2 className="text-2xl font-bold text-foreground">
               Xadrez dos Amigos
             </h2>
-            <p className="text-muted-foreground">
-              Clique em "Iniciar Partida" para começar a jogar
-            </p>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">
+                  Modo de Jogo
+                </label>
+                <Select value={gameMode} onValueChange={(value: 'pvp' | 'ai') => setGameMode(value)}>
+                  <SelectTrigger className="w-64">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pvp">Humano vs Humano</SelectItem>
+                    <SelectItem value="ai">Humano vs IA</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {gameMode === 'ai' && (
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Dificuldade da IA
+                  </label>
+                  <Select value={difficulty} onValueChange={(value: Difficulty) => setDifficulty(value)}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Fácil</SelectItem>
+                      <SelectItem value="medium">Médio</SelectItem>
+                      <SelectItem value="hard">Difícil</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            
             <Button 
               onClick={startGame}
               size="lg"
-              className="bg-primary hover:bg-primary/90"
+              className="bg-primary hover:bg-primary/90 mt-4"
             >
               Iniciar Partida
             </Button>
@@ -106,8 +181,17 @@ export const ChessBoard = () => {
         ) : (
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-foreground mb-2">
-              Turno: {currentPlayer === 'white' ? 'Brancas' : 'Pretas'}
+              {gameMode === 'ai' && isAIThinking ? 
+                'IA está pensando...' : 
+                `Turno: ${currentPlayer === 'white' ? 'Brancas' : 
+                  gameMode === 'ai' ? 'Você' : 'Pretas'}`
+              }
             </h2>
+            {gameMode === 'ai' && (
+              <p className="text-sm text-muted-foreground">
+                Dificuldade: {difficulty === 'easy' ? 'Fácil' : difficulty === 'medium' ? 'Médio' : 'Difícil'}
+              </p>
+            )}
             <Button 
               onClick={resignGame}
               variant="destructive"
